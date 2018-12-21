@@ -10,7 +10,7 @@
 #include "resource.h"
 
 #define TIMER_SEC 1
-static const int cLight = 15; // 灯数
+static const int cLight = 21; // 灯数
 static POINT cc[cLight]; // 圆心坐标
 static int  radius = 15; // 圆的半径
 static TCHAR szTime[3];  // 时间存储位置
@@ -18,7 +18,7 @@ static int tLight = 0;   // 红绿灯周期，120s一个周期
 static POINT arrow[cLight][8]; // 存储箭头的点,第一维：位置与cc[i]对应
 							   // 第二维：0-5箭头，6-7箭杆
 static RECT rect[cLight];	   // 框框数目，用于更新窗口指定区域
-static POINT text[3];		   // 文本显示区域
+static POINT text[5];		   // 文本显示区域
 static bool flag = false;      // 红绿灯周期改变的标志
 static int xClient, yClient;   // 窗口的宽、高
 
@@ -51,7 +51,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInst, LPSTR lpszCmdLine, 
 		MessageBox(NULL, TEXT("This program requires Windows NT or later!"), szAppName, MB_ICONERROR);
 		return 0;
 	}
-	xClient = cLight * (5 + 2 * radius) + 5; //如果需要显示标题栏，则加15
+	xClient = cLight * (5 + 2 * radius) + 5 - 20; //如果需要显示标题栏，则加15。减去20，是因为cLight=21个灯位造成后面黑边太多了，如果减少灯位，就不要减20啦
 	yClient = 10 + 2 * radius + 15; //如果需要显示标题栏，则加40
 	hwnd = CreateWindowEx(WS_EX_TOPMOST, szAppName, TEXT("Traffic Light"),
 		WS_POPUPWINDOW | WS_SIZEBOX | WS_MINIMIZEBOX,
@@ -116,6 +116,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM  wParam, LPARAM  lParam
 			InvalidateRect(hwnd, &rect[4], TRUE);
 			InvalidateRect(hwnd, &rect[10], TRUE);
 			InvalidateRect(hwnd, &rect[14], TRUE);
+            InvalidateRect(hwnd, &rect[19], TRUE);
+            InvalidateRect(hwnd, &rect[20], TRUE);
 		}
 
 		if ((0 < tLight) && (tLight < 50) || (50 < tLight) && (tLight < 77) ||
@@ -124,13 +126,17 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM  wParam, LPARAM  lParam
 			;
 		else if ((77 <= tLight) && (tLight < 80)) // 需要更新文字和绿灯
 		{
-			InvalidateRect(hwnd, &rect[8], TRUE);
-			InvalidateRect(hwnd, &rect[12], TRUE);
+			InvalidateRect(hwnd, &rect[8], TRUE);	// 更新单色直行灯
+			InvalidateRect(hwnd, &rect[12], TRUE);	// 更新多色圆形灯
+			InvalidateRect(hwnd, &rect[16], TRUE);	// 更新多色左转灯
+			InvalidateRect(hwnd, &rect[17], TRUE);	// 更行多色直行灯
 		}
 		else if ((112 <= tLight) && (tLight < 115)) // 需要更新文字和绿灯
 		{			
-			InvalidateRect(hwnd, &rect[2], TRUE); 
-			InvalidateRect(hwnd, &rect[12], TRUE);
+			InvalidateRect(hwnd, &rect[2], TRUE);	// 更新单色左转灯
+			InvalidateRect(hwnd, &rect[12], TRUE);	// 更新多色圆形灯
+			InvalidateRect(hwnd, &rect[16], TRUE);	// 更新多色左转灯
+			InvalidateRect(hwnd, &rect[17], TRUE);	// 更行多色直行灯
 		}
 		else if (flag == false)
 			InvalidateRect(hwnd, NULL, TRUE); // 整个窗口更新
@@ -167,17 +173,22 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM  wParam, LPARAM  lParam
 		RoundRect(hdc, cc[6].x - radius - 2, cc[6].y - radius - 2,
 			cc[8].x + radius + 3, cc[8].y + radius + 3, 5, 5);
 		RoundRect(hdc, cc[12].x - radius - 2, cc[12].y - radius - 2,
-			cc[12].x + radius + 3, cc[12].y + radius + 3, 5, 5);  //最后一个是多色灯
-		/* 画出6个灯的位置*/
+			cc[12].x + radius + 3, cc[12].y + radius + 3, 5, 5);  //多色灯圆形
+        RoundRect(hdc, cc[16].x - radius - 2, cc[16].y - radius - 2,
+			cc[17].x + radius + 3, cc[17].y + radius + 3, 5, 5);  //多色灯箭形   
+		/* 画出灯的位置*/
 		SelectObject(hdc, hPen);
-		for (int i = 0; i < 3; i++) 
+		for (int i = 0; i < 3; i++)  // 单色左转灯位置
 			Arc(hdc, cc[i].x - radius, cc[i].y - radius, cc[i].x + radius, cc[i].y + radius,
 				cc[i].x, cc[i].x - radius, cc[i].x, cc[i].x - radius);
-		for (int i = 6; i < 9; i++) 
+		for (int i = 6; i < 9; i++) // 单色直行灯位置
 			Arc(hdc, cc[i].x - radius, cc[i].y - radius, cc[i].x + radius, cc[i].y + radius,
 				cc[i].x, cc[i].x - radius, cc[i].x, cc[i].x - radius);
 		Arc(hdc, cc[12].x - radius, cc[12].y - radius, cc[12].x + radius, cc[12].y + radius,
-			cc[12].x, cc[12].x - radius, cc[12].x, cc[12].x - radius); // 多色灯的位置
+			cc[12].x, cc[12].x - radius, cc[12].x, cc[12].x - radius); // 多色灯圆形的位置
+        for (int i = 16; i < 18; i++)   // 多色灯箭形的位置
+			Arc(hdc, cc[i].x - radius, cc[i].y - radius, cc[i].x + radius, cc[i].y + radius,
+				cc[i].x, cc[i].x - radius, cc[i].x, cc[i].x - radius);
 		/* 
 		红绿灯一个周期120s
 		0-49:R R, 50-76:R G, 77-79:R G闪, 80-84:R Y, 85-111:G R, 112-114:G闪 R, 115-119:Y R
@@ -187,31 +198,44 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM  wParam, LPARAM  lParam
 			//左转红灯
 			SelectObject(hdc, hPenRed);
 			SelectObject(hdc, hBrushRed);
+            // 左转单色红灯
 			Polygon(hdc,arrow[0], 6);
-			Rectangle(hdc, arrow[0][6].x, arrow[0][6].y, arrow[0][7].x, arrow[0][7].y);
-			//右转红灯
+			Rectangle(hdc, arrow[0][6].x, arrow[0][6].y, arrow[0][7].x, arrow[0][7].y);            
+			// 直行单色红灯
 			Polygon(hdc, arrow[6], 6);
-			Rectangle(hdc, arrow[6][6].x, arrow[6][6].y, arrow[6][7].x, arrow[6][7].y);
-			//多色灯红灯
+			Rectangle(hdc, arrow[6][6].x, arrow[6][6].y, arrow[6][7].x, arrow[6][7].y);            
+			// 多色灯圆形红灯
 			Ellipse(hdc, cc[12].x - radius, cc[12].y - radius, cc[12].x + radius, cc[12].y + radius);
+            // 多色左转红灯
+            Polygon(hdc,arrow[16], 6);
+			Rectangle(hdc, arrow[16][6].x, arrow[16][6].y, arrow[16][7].x, arrow[16][7].y);
+            // 多色直行红灯
+            Polygon(hdc,arrow[17], 6);
+			Rectangle(hdc, arrow[17][6].x, arrow[17][6].y, arrow[17][7].x, arrow[17][7].y);
 
 			/* 输出剩余时间	*/		
 			SetBkColor(hdc, RGB(0, 0, 0));
 			SelectObject(hdc, hFont);
 			SetTextColor(hdc, colorRed);
 			TextOut(hdc, text[0].x, text[0].y, szTime,
-				wsprintf(szTime, TEXT("%02d"), 85 - tLight)); // 左灯红95s
+				wsprintf(szTime, TEXT("%02d"), 85 - tLight)); // 单色左转灯红95s
 			TextOut(hdc, text[1].x, text[1].y, szTime,
-				wsprintf(szTime, TEXT("%02d"), 50 - tLight)); // 右灯红55s
+				wsprintf(szTime, TEXT("%02d"), 50 - tLight)); // 单色直行灯红55s
 			TextOut(hdc, text[2].x, text[2].y, szTime,
-				wsprintf(szTime, TEXT("%02d"), 50 - tLight)); // 多色灯红55s
+				wsprintf(szTime, TEXT("%02d"), 50 - tLight)); // 多色圆形灯红55s
+			TextOut(hdc, text[3].x, text[3].y, szTime,
+				wsprintf(szTime, TEXT("%02d"), 85 - tLight)); // 多色左转灯红95s
+			TextOut(hdc, text[4].x, text[4].y, szTime,
+				wsprintf(szTime, TEXT("%02d"), 50 - tLight)); // 多色直行灯红55s
 		}
 		else if (tLight < 80) // R G G
 		{
+			// 单色左转红灯
 			SelectObject(hdc, hPenRed);
 			SelectObject(hdc, hBrushRed);
 			Polygon(hdc, arrow[0], 6);
 			Rectangle(hdc, arrow[0][6].x, arrow[0][6].y, arrow[0][7].x, arrow[0][7].y);
+			// 单色直行绿灯
 			if (76 < tLight && flag == true) // 绿灯灭前闪烁3秒,0.5s亮，1s灭
 				;
 			else 
@@ -221,53 +245,103 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM  wParam, LPARAM  lParam
 				Polygon(hdc, arrow[8], 6);
 				Rectangle(hdc, arrow[8][6].x, arrow[8][6].y, arrow[8][7].x, arrow[8][7].y);				
 			}
+			// 多色圆形绿灯
 			SelectObject(hdc, hPenGreen);
 			SelectObject(hdc, hBrushGreen);
 			Ellipse(hdc, cc[12].x - radius, cc[12].y - radius, cc[12].x + radius, cc[12].y + radius);
+			// 多色左转红灯
+			SelectObject(hdc, hPenRed);
+			SelectObject(hdc, hBrushRed);
+			Polygon(hdc, arrow[16], 6);
+			Rectangle(hdc, arrow[16][6].x, arrow[16][6].y, arrow[16][7].x, arrow[16][7].y);
+			// 多色直行绿灯
+			if (76 < tLight && flag == true) // 绿灯灭前闪烁3秒,0.5s亮，1s灭
+				;
+			else
+			{
+				SelectObject(hdc, hPenGreen);
+				SelectObject(hdc, hBrushGreen);
+				Polygon(hdc, arrow[17], 6);
+				Rectangle(hdc, arrow[17][6].x, arrow[17][6].y, arrow[17][7].x, arrow[17][7].y);
+			}
 
 			/* 输出剩余时间	*/
 			SetBkColor(hdc, RGB(0, 0, 0));
 			SelectObject(hdc, hFont);
+			// 单色左转红色
 			SetTextColor(hdc, colorRed);
 			TextOut(hdc, text[0].x, text[0].y, szTime,
 				wsprintf(szTime, TEXT("%02d"), 85 - tLight));
+			// 单色直行绿色
 			SetTextColor(hdc, colorGreen);
 			TextOut(hdc, text[1].x, text[1].y, szTime,
-				wsprintf(szTime, TEXT("%02d"), 80 - tLight)); // 右灯绿30s
+				wsprintf(szTime, TEXT("%02d"), 80 - tLight)); // 右灯绿30s。
+			// 多色圆形
 			TextOut(hdc, text[2].x, text[2].y, szTime,
 				wsprintf(szTime, TEXT("%02d"), 115 - tLight)); // 多色灯绿30s
+			// 多色左转红色
+			SetTextColor(hdc, colorRed);
+			TextOut(hdc, text[3].x, text[3].y, szTime,
+				wsprintf(szTime, TEXT("%02d"), 85 - tLight));
+			// 多色直行绿色
+			SetTextColor(hdc, colorGreen);
+			TextOut(hdc, text[4].x, text[4].y, szTime,
+				wsprintf(szTime, TEXT("%02d"), 80 - tLight)); // 右灯绿30s
 		}
 		else if (tLight < 85) // R Y G
 		{
+			// 单色左转红灯
 			SelectObject(hdc, hPenRed);
 			SelectObject(hdc, hBrushRed);
 			Polygon(hdc, arrow[0], 6);
 			Rectangle(hdc, arrow[0][6].x, arrow[0][6].y, arrow[0][7].x, arrow[0][7].y);
-
+			// 单色直行黄灯
 			SelectObject(hdc, hPenYellow);
 			SelectObject(hdc, hBrushYellow);
 			Polygon(hdc, arrow[7], 6);
 			Rectangle(hdc, arrow[7][6].x, arrow[7][6].y, arrow[7][7].x, arrow[7][7].y);
-
+			// 多色圆形绿灯
 			SelectObject(hdc, hPenGreen);
 			SelectObject(hdc, hBrushGreen);
 			Ellipse(hdc, cc[12].x - radius, cc[12].y - radius, cc[12].x + radius, cc[12].y + radius);
+			// 多色左转红灯
+			SelectObject(hdc, hPenRed);
+			SelectObject(hdc, hBrushRed);
+			Polygon(hdc, arrow[16], 6);
+			Rectangle(hdc, arrow[16][6].x, arrow[16][6].y, arrow[16][7].x, arrow[16][7].y);
+			// 多色直行黄灯
+			SelectObject(hdc, hPenYellow);
+			SelectObject(hdc, hBrushYellow);
+			Polygon(hdc, arrow[17], 6);
+			Rectangle(hdc, arrow[17][6].x, arrow[17][6].y, arrow[17][7].x, arrow[17][7].y);
 
 			/* 输出剩余时间	*/
 			SetBkColor(hdc, RGB(0, 0, 0));
 			SelectObject(hdc, hFont);
+			// 单色左转红色
 			SetTextColor(hdc, colorRed);
 			TextOut(hdc, text[0].x, text[0].y, szTime,
 				wsprintf(szTime, TEXT("%02d"), 85 - tLight));
+			// 单色直行绿色
 			SetTextColor(hdc, colorYellow);
 			TextOut(hdc, text[1].x, text[1].y, szTime,
 				wsprintf(szTime, TEXT("%02d"), 85 - tLight)); // 右灯黄5s
+			// 多色圆形红色
 			SetTextColor(hdc, colorGreen);
 			TextOut(hdc, text[2].x, text[2].y, szTime,
 				wsprintf(szTime, TEXT("%02d"), 115 - tLight)); // 多色灯绿灯
+			// 多色左转红色
+			SetTextColor(hdc, colorRed);
+			TextOut(hdc, text[3].x, text[3].y, szTime,
+				wsprintf(szTime, TEXT("%02d"), 85 - tLight));
+			// 多色直行绿色
+			SetTextColor(hdc, colorYellow);
+			TextOut(hdc, text[4].x, text[4].y, szTime,
+				wsprintf(szTime, TEXT("%02d"), 85 - tLight)); // 右灯黄5s
 		}
 		else if (tLight < 115) // G R G
 		{
+			// 单色左转绿灯
 			if (111 < tLight && flag == true) // 绿灯灭前闪烁3秒
 				;
 			else
@@ -276,52 +350,111 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM  wParam, LPARAM  lParam
 				SelectObject(hdc, hBrushGreen);
 				Polygon(hdc, arrow[2], 6);
 				Rectangle(hdc, arrow[2][6].x, arrow[2][6].y, arrow[2][7].x, arrow[2][7].y);
-				Ellipse(hdc, cc[12].x - radius, cc[12].y - radius, cc[12].x + radius, cc[12].y + radius);
 			}
+			// 单色直行红灯
 			SelectObject(hdc, hPenRed);
 			SelectObject(hdc, hBrushRed);
 			Polygon(hdc, arrow[6], 6);
 			Rectangle(hdc, arrow[6][6].x, arrow[6][6].y, arrow[6][7].x, arrow[6][7].y);
-			
+			// 多色左转绿灯
+			if (111 < tLight && flag == true) // 绿灯灭前闪烁3秒
+				;
+			else
+			{
+				SelectObject(hdc, hPenGreen);
+				SelectObject(hdc, hBrushGreen);	
+				Ellipse(hdc, cc[12].x - radius, cc[12].y - radius, cc[12].x + radius, cc[12].y + radius);
+			}
+			// 多色左转绿灯
+			if (111 < tLight && flag == true) // 绿灯灭前闪烁3秒
+				;
+			else
+			{
+				SelectObject(hdc, hPenGreen);
+				SelectObject(hdc, hBrushGreen);
+				Polygon(hdc, arrow[16], 6);
+				Rectangle(hdc, arrow[16][6].x, arrow[16][6].y, arrow[16][7].x, arrow[16][7].y);
+			}
+			// 多色直行红灯
+			SelectObject(hdc, hPenRed);
+			SelectObject(hdc, hBrushRed);
+			Polygon(hdc, arrow[17], 6);
+			Rectangle(hdc, arrow[17][6].x, arrow[17][6].y, arrow[17][7].x, arrow[17][7].y);
 
 			/* 输出剩余时间	*/
 			SetBkColor(hdc, RGB(0, 0, 0));
 			SelectObject(hdc, hFont);
+			// 单色左转绿色
 			SetTextColor(hdc, colorGreen);
 			TextOut(hdc, text[0].x, text[0].y, szTime,
 				wsprintf(szTime, TEXT("%02d"), 115 - tLight)); // 左灯绿30s
+			// 单色直行红色
 			SetTextColor(hdc, colorRed);
 			TextOut(hdc, text[1].x, text[1].y, szTime,
 				wsprintf(szTime, TEXT("%02d"), 120 - tLight + 50)); // 右灯红
+			// 多色圆形绿色
 			SetTextColor(hdc, colorGreen);
 			TextOut(hdc, text[2].x, text[2].y, szTime,
 				wsprintf(szTime, TEXT("%02d"), 115 - tLight)); // 多色灯绿灯闪烁5秒
+			// 多色左转绿色
+			SetTextColor(hdc, colorGreen);
+			TextOut(hdc, text[3].x, text[3].y, szTime,
+				wsprintf(szTime, TEXT("%02d"), 115 - tLight)); // 左灯绿30s
+			// 多色直行红色
+			SetTextColor(hdc, colorRed);
+			TextOut(hdc, text[4].x, text[4].y, szTime,
+				wsprintf(szTime, TEXT("%02d"), 120 - tLight + 50)); // 右灯红
 		}
 		else if(tLight < 120) // Y R Y
 		{
+			// 单色左转黄灯
 			SelectObject(hdc, hPenYellow);
 			SelectObject(hdc, hBrushYellow);
 			Polygon(hdc, arrow[1], 6);
 			Rectangle(hdc, arrow[1][6].x, arrow[1][6].y, arrow[1][7].x, arrow[1][7].y);
-			Ellipse(hdc, cc[12].x - radius, cc[12].y - radius, cc[12].x + radius, cc[12].y + radius);
-
+			// 单色直行红灯
 			SelectObject(hdc, hPenRed);
 			SelectObject(hdc, hBrushRed);
 			Polygon(hdc, arrow[6], 6);
 			Rectangle(hdc, arrow[6][6].x, arrow[6][6].y, arrow[6][7].x, arrow[6][7].y);
+			// 多色左转黄灯
+			SelectObject(hdc, hPenYellow);
+			SelectObject(hdc, hBrushYellow);
+			Ellipse(hdc, cc[12].x - radius, cc[12].y - radius, cc[12].x + radius, cc[12].y + radius);
+			// 多色左转黄灯
+			SelectObject(hdc, hPenYellow);
+			SelectObject(hdc, hBrushYellow);
+			Polygon(hdc, arrow[16], 6);
+			Rectangle(hdc, arrow[16][6].x, arrow[16][6].y, arrow[16][7].x, arrow[16][7].y);
+			// 多色直行红灯
+			SelectObject(hdc, hPenRed);
+			SelectObject(hdc, hBrushRed);
+			Polygon(hdc, arrow[17], 6);
+			Rectangle(hdc, arrow[17][6].x, arrow[17][6].y, arrow[17][7].x, arrow[17][7].y);
 			
 			/* 输出剩余时间	*/
 			SetBkColor(hdc, RGB(0, 0, 0));
 			SelectObject(hdc, hFont);
+			// 单色左转黄色
 			SetTextColor(hdc, colorYellow);
 			TextOut(hdc, text[0].x, text[0].y, szTime,
 				wsprintf(szTime, TEXT("%02d"), 120 - tLight)); // 左灯黄5s
+			// 单色直行红色
 			SetTextColor(hdc, colorRed);
 			TextOut(hdc, text[1].x, text[1].y, szTime,
 				wsprintf(szTime, TEXT("%02d"), 120 - tLight + 50)); // 右灯红
+			// 多色圆形黄色
 			SetTextColor(hdc, colorYellow);
 			TextOut(hdc, text[2].x, text[2].y, szTime,
 				wsprintf(szTime, TEXT("%02d"), 120 - tLight)); // 多色灯黄
+			// 多色左转黄色
+			SetTextColor(hdc, colorYellow);
+			TextOut(hdc, text[3].x, text[3].y, szTime,
+				wsprintf(szTime, TEXT("%02d"), 120 - tLight)); // 左灯黄5s
+			// 多色直行红色
+			SetTextColor(hdc, colorRed);
+			TextOut(hdc, text[4].x, text[4].y, szTime,
+				wsprintf(szTime, TEXT("%02d"), 120 - tLight + 50)); // 右灯红
 		}
 		EndPaint(hwnd, &ps);
 		return 0;
@@ -350,7 +483,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM  wParam, LPARAM  lParam
 */
 void CreateArrowPoint()
 {
-	for (int i = 0; i < 3; i++)
+	// 左转灯
+	for (int i = 0; (i < cLight) && (i < 3 || i ==16); i++)
 	{
 		arrow[i][0].x = cc[i].x - radius * 9 / 80;			arrow[i][0].y = cc[i].y - radius * 8 / 10;
 		arrow[i][1].x = cc[i].x - radius * 18 / 20;			arrow[i][1].y = cc[i].y;
@@ -360,8 +494,11 @@ void CreateArrowPoint()
 		arrow[i][5].x = arrow[i][0].x + radius * 2 / 5;		arrow[i][5].y = cc[i].y - radius * 8 / 10;
 		arrow[i][6].x = cc[i].x - radius *  4 / 20;			arrow[i][6].y = cc[i].y - radius * 2 / 10;
 		arrow[i][7].x = cc[i].x + radius * 18 / 20;			arrow[i][7].y = arrow[i][6].y + radius * 2 / 5;
+		if (i == 2) // 让它跳到15，然后回到循环+1就是16了，也就是多色左转灯的位置
+			i = 15;
 	}
-	for (int i = 6; i < 9; i++)
+	// 直行灯
+	for (int i = 6; (i < cLight) && (i < 9 || i == 17); i++)
 	{
 		arrow[i][0].y = cc[i].y - radius * 9 / 80;			arrow[i][0].x = cc[i].x - radius * 8 / 10;
 		arrow[i][1].y = cc[i].y - radius * 18 / 20;			arrow[i][1].x = cc[i].x;
@@ -371,6 +508,8 @@ void CreateArrowPoint()
 		arrow[i][5].y = arrow[i][0].y + radius * 2 / 5;		arrow[i][5].x = cc[i].x - radius * 8 / 10;
 		arrow[i][6].y = cc[i].y - radius *  4 / 20;			arrow[i][6].x = cc[i].x - radius * 2 / 10;
 		arrow[i][7].y = cc[i].y + radius * 18 / 20;			arrow[i][7].x = arrow[i][6].x + radius * 2 / 5;
+		if (i == 8) // 让它跳到16，然后回到循环+1就是17了，也就是多色直行灯的位置
+			i = 16;
 	}
 }
 
@@ -390,6 +529,8 @@ void CreateTextPoint()
 	text[0].x = rect[4].left; text[0].y = rect[4].top;
 	text[1].x = rect[10].left; text[1].y = rect[10].top;
 	text[2].x = rect[14].left; text[2].y = rect[14].top;
+    text[3].x = rect[19].left; text[3].y = rect[19].top;
+    text[4].x = rect[20].left; text[4].y = rect[20].top;
 }
 
 HFONT CreateCustomFont()
